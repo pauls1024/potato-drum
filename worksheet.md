@@ -38,6 +38,8 @@ There are 12 pins on the other side of the MPR121 breakout board.  Connect some 
 **THIS PROGRAM ONLY WORKS IN PTHON3**
 **bin() and OSC fail in python2**
 
+**You will need  acopy of the mpc121.py library file in the same directory as your new python file ... I'll help you with this bit.**
+
 If you've wired up the sensor as shown in the diagram, then your trigger pin is **GPIO14**.
 
 1. Click on **Menu** > **Programming** > **Python 3 (IDLE)**, to open up a new Python shell.
@@ -60,12 +62,12 @@ If you've wired up the sensor as shown in the diagram, then your trigger pin is 
 	touches = [0,0,0,0,0,0,0,0,0,0,0,0];
 
 	while True:
-	    #check to see if the mpr121 has set the interrupt pin
-	    if (trigger.is_pressed):
-				print( "Something was touched or released")
-				#read the data to see which switches are currently pressed
-				touchData = mpr121.readData(0x5a)
-				print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
+		#check to see if the mpr121 has set the interrupt pin
+		if (trigger.is_pressed):
+			print( "Something was touched or released")
+			#read the data to see which switches are currently pressed
+			touchData = mpr121.readData(0x5a)
+			print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
 
 	```
 
@@ -147,13 +149,12 @@ To finish your program, you need to send values to Sonic Pi from your Python fil
 	touches = [0,0,0,0,0,0,0,0,0,0,0,0];
 
 	while True:
-			#check to see if the mpr121 has set the interrupt pin
-			if (trigger.is_pressed):
-				print( "Something was touched or released")
-				#read the data to see which switches are currently pressed
-				touchData = mpr121.readData(0x5a)
-
-				print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
+		#check to see if the mpr121 has set the interrupt pin
+		if (trigger.is_pressed):
+			print( "Something was touched or released")
+			#read the data to see which switches are currently pressed
+			touchData = mpr121.readData(0x5a)
+			print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
 
 	```
 
@@ -180,13 +181,12 @@ To finish your program, you need to send values to Sonic Pi from your Python fil
 	touches = [0,0,0,0,0,0,0,0,0,0,0,0];
 
 	while True:
-			#check to see if the mpr121 has set the interrupt pin
-			if (trigger.is_pressed):
-				print( "Something was touched or released")
-				#read the data to see which switches are currently pressed
-				touchData = mpr121.readData(0x5a)
-
-				print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
+		#check to see if the mpr121 has set the interrupt Pin
+		if (trigger.is_pressed):
+			print( "Something was touched or released")
+			#read the data to see which switches are currently pressed
+			touchData = mpr121.readData(0x5a)
+			print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
 
 	```
 
@@ -215,30 +215,25 @@ To finish your program, you need to send values to Sonic Pi from your Python fil
 	touches = [0,0,0,0,0,0,0,0,0,0,0,0];
 
 	while True:
-	    #check to see if the mpr121 has set the interrupt pin
-	    if (trigger.is_pressed):
-	      print( "Something was touched or released")
-	      #read the data to see which switches are currently pressed
-	      touchData = mpr121.readData(0x5a)
-
-	      print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
-
-	      #send a message to Sonic Pi for each switch currently touched
-	      for i in range(12):
-	         if (touchData & (1<<i)):
-
-	            if (touches[i] == 0):
-
-	               print( 'Pin ' + str(i) + ' was just touched')
-	               sender.send_message('/play_drum', str(i))
-
-	            touches[i] = 1;
-	         else:
-	            if (touches[i] == 1):
-	               print( 'Pin ' + str(i) + ' was just released')
-	            touches[i] = 0;
-	    else:
-	        pass
+		#check to see if the mpr121 has set the interrupt pin
+		if (trigger.is_pressed):
+			print( "Something was touched or released")
+			#read the data to see which switches are currently pressed
+			touchData = mpr121.readData(0x5a)
+			print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
+			#send a message to Sonic Pi for each switch currently touched
+			for i in range(12):
+				if (touchData & (1<<i)):
+					if (touches[i] == 0):
+						print( 'Pin ' + str(i) + ' was just touched')
+						sender.send_message('/play_drum', str(i))
+						touches[i] = 1;
+				else:
+					if (touches[i] == 1):
+						print( 'Pin ' + str(i) + ' was just released')
+						touches[i] = 0;
+		else:
+			pass
 	```
 
 1. Save and run your code and see what happens. If all goes well, you've made your very own drum kit.
