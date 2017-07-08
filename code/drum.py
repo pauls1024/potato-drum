@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 
-"""beetbox_serial.py: Trigger script for the control panel- 3 serial reports to arduino to control LED sequences, 3 Joe voice samples, 6 drum samples. Plan to introduce Cron to stop sounds after bedtime"""
+# This is a python3 script
+# bin() function and Sonic Pi OSC will not work from python2
 
-__author__ = "Shane Lester -based on code by Scott Garner"
+"""beetbox based script : Trigger script for sonic pi using 12 channel mpr121 sensor"""
 
+__author__ = "Paul Smith - based on code by Scott Garner and Shane Lester"
 
-import pygame
-
-import RPi.GPIO as GPIO
+from gpiozero import Button 
 import mpr121
-import serial
 
 from pythonosc import osc_message_builder
 from pythonosc import udp_client
@@ -17,26 +16,26 @@ from pythonosc import udp_client
 sender = udp_client.SimpleUDPClient('127.0.0.1', 4559)
 
 # Use GPIO Interrupt Pin
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(7, GPIO.IN)
+trigger = Button(14)
 
 # Use mpr121 class for everything else
 mpr121.TOU_THRESH = 0x30
 mpr121.REL_THRESH = 0x33
 mpr121.setup(0x5a)
 
+# create a place to store the last state (touched  or not touched) of each switch
 touches = [0,0,0,0,0,0,0,0,0,0,0,0];
 
 while True:
-
-   if (GPIO.input(7)): # Interupt pin is high
-     pass
-   else: # Interupt pin is low
-      print( "LOW")
+    #check to see if the mpr121 has set the interrupt pin
+    if (trigger.is_pressed):
+      print( "Something was touched or released")
+      #read the data to see which switches are currently pressed
       touchData = mpr121.readData(0x5a)
       
-      print( touchData)           
+      print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
 
+      #send a message to Sonic Pi for each switch currently touched
       for i in range(12):
          if (touchData & (1<<i)):
 
@@ -50,4 +49,5 @@ while True:
             if (touches[i] == 1):
                print( 'Pin ' + str(i) + ' was just released')
             touches[i] = 0;
-
+    else:
+        pass

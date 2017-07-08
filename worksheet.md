@@ -1,51 +1,77 @@
-# The Raspberry Pi ultrasonic theremin
+# The Raspberry Pi Potato Drum Kit
 
-In this resource, you are going to make your very own theremin using an ultrasonic distance sensor and a little bit of Python and Sonic Pi code.
+In this resource, you are going to make your very own drum kit using an 12 button capacitative switch (MPR121) and a little bit of Python and Sonic Pi code.
 
-A [theremin](https://en.wikipedia.org/wiki/Theremin) is a unique musical instrument, in that it produces sound without being touched by the performer. The circuitry for a theremin is fairly complicated, but you can fake it by using ultrasonic distance sensors.
+The breakout board does not have any buttons or switches on it, instead it has 12 pins that you can connect to any conductive object... like potatoes.  The MPR121 can then detect when you touch the potato!
 
-![theremin](https://upload.wikimedia.org/wikipedia/commons/c/c5/Lydia_kavina.jpg)
-	
-Thereminist Lydia Kavina playing in Ekaterinburg (picture by [G2pavlov](https://en.wikipedia.org/wiki/User:G2pavlov) at the [English Language Wikipedis](https://en.wikipedia.org/wiki/) [via Wikimedia Commons and creative commons licence](http://creativecommons.org/licenses/by-sa/3.0/)).
+If we can detect some event, then we should be able to make the computer react.  We are going to write a program that detects when you touch a potato, and then send a signal to Sonic Pi to tell it to play a sound.
 
 ## Setting up the circuitry
 
-An ultrasonic distance sensor is a device that sends out pulses of ultrasonic sound, and measures the time they take to bounce off nearby objects and be reflected back. They can measure distances fairly accurately, up to about a meter.
+A Capacitative switch is a conductive object that can detect when another conductive object (like you) touches it.  When you touch the switch (potato) some electrical charge moves between
+you and the potato.  And the MPR121 can detect that change in charge on the potato.  When it detects a change on any of the 12 switches it sends a message to the Pi.
 
-![ultrasonic](images/Ultrasonic_Distance_Sensor.png)
+![MPR121](images/MPR121.png)
 
-An ultrasonic distance sensor has four pins. They are called **Ground** (**Gnd**), **Trigger** (**Trig**), **Echo** (**Echo**) and **Power** (**Vcc**).
+An MPR121 12 way capacitative touch breakout board has 18 pins, 6 on one side of the board to connect to the Pi and 12 on the other to connect to swiches (potato, apple, tin foil...).
 
-To use an ultrasonic distance sensor you need to connect the **Gnd** pin to the ground pin on the Raspberry Pi, the **Trig** pin to a GPIO pin on the Raspberry Pi and the **Vcc** pin to the 5V pin on the Raspberry Pi.
+The connections to the Pi are called **3.3V**, **IRQ**, **SCL**, **SDA**, **ADD**, and **GND**.  Those pins need to be connected to the Pi as shown below.
 
-The **Echo** pin is a little more complicated. It needs to be connected through a 330 ohm resistor to a GPIO pin on the Raspberry Pi, and that pin needs to be grounded through a 470 ohm resistor.
-
-We dont have a 330 ohm resistor so we will connect a 220 ohm and a 100 ohm resistor in series (a line). They would add together to make up a 320 ohm resistance ... which is close enough!
+```
+MPR121    wire colour      Pi Pin (numbering 1-40)
+3.3V      red               1
+IRQ       orange            8
+SCL       purple            5
+SDA       yellow            3
+ADD       not connected
+Gnd       black             6
+```
 
 The diagram below shows one suggested arrangement for setting this up.
 
-![circuit](images/ultrasonic_rangefinder_bb.png)
+![circuit](images/potato_drum_bb.png)
 
-## Detecting distance
+There are 12 pins on the other side of the MPR121 breakout board.  Connect some of them to potatoes, apples, tin foil... or any other conductive objects... these will be your touch switches.
 
-Thanks to the abstractions in the GPIO Zero module, you can very easily detect how far away an object is from the distance sensor. If you've wired up the sensor as shown in the diagram, then your echo pin is **17** and your trigger pin is **4**.
+## Detecting Touches
+
+**THIS PROGRAM ONLY WORKS IN PTHON3**
+**bin() and OSC fail in python2**
+
+If you've wired up the sensor as shown in the diagram, then your trigger pin is **GPIO14**.
 
 1. Click on **Menu** > **Programming** > **Python 3 (IDLE)**, to open up a new Python shell.
 1. In the shell, click on **File** > **New File** to create a new Python file.
-1. The code to detect distance is below. Type it into your new file, then save and run it by clicking on **Run** > **Run Module** or pressing **F5**.  To stop your program hold **CTRL** key and press **C**.
+1. The code to detect touches is below. Type it into your new file, then save and run it by clicking on **Run** > **Run Module** or pressing **F5**.  To stop your program hold **CTRL** key and press **C**.
 
 	```python
-	from gpiozero import DistanceSensor
-	from time import sleep
+	from gpiozero import Button
+	import mpr121
 
-	sensor = DistanceSensor(echo=17, trigger=4)
+	# Use GPIO Interrupt Pin
+	trigger = Button(14)
+
+	# Use mpr121 class for everything else
+	mpr121.TOU_THRESH = 0x30
+	mpr121.REL_THRESH = 0x33
+	mpr121.setup(0x5a)
+
+	# create a place to store the last state (touched  or not touched) of each switch
+	touches = [0,0,0,0,0,0,0,0,0,0,0,0];
 
 	while True:
-		print(sensor.distance)
-		sleep(1)
+	    #check to see if the mpr121 has set the interrupt pin
+	    if (trigger.is_pressed):
+				print( "Something was touched or released")
+				#read the data to see which switches are currently pressed
+				touchData = mpr121.readData(0x5a)
+				print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
+
 	```
 
-The `sensor.distance` is the distance in meters between the object and the sensor. Run your code and move your hand backwards and forwards in front of the sensor. You should see the distance changing, as it is printed out in the shell.
+The `touchData` is a binary number which shows which potatoes have been touched.  Binary means that each digit can be 0 or 1.  If you run the program you should see it printing a binary number when you touch a potato.  There are 12 switches, so you see a 12 bit binary number.  Each digit of the binary number represents a different potato.
+
+Run the program, touch different potatoes.  You should see the binary number change every time you touch a potato.
 
 ## Getting Sonic Pi ready
 
@@ -63,27 +89,34 @@ Sonic Pi is going to receive messages from your Python script. This will tell So
 1. Next you can add another live loop to sync with the messages that will be coming from Python.
 
 	```ruby
-	live_loop :listen do
-		message = sync "/play_this"
-	end
+  live_loop :listen do
+		message = sync "/play_drum"
+		drum = message[:args][0]
+		cue :one if drum=="1"
+		cue :two if drum=="2"
+		cue :three if drum=="3"
+		cue :four if drum=="4"
+		cue :five if drum=="5"
+		cue :six if drum=="6"
+  end
 	```
 
-1. The message that comes in will be a dictionary, containing the key `:args`. The value of this key will be a list, where the first item is the midi value of the note to be played.
+1. The message that comes in will be a dictionary, containing the key `:args`. The value of this key will be the number of one of the potatoes you touched.
+
+1. Lastly, you need to tell Sonic Pi what to do when it detects each of the potatoes.
 
 	```ruby
-	live_loop :listen do
-		message = sync "/play_this"
-		note = message[:args][0]
+	in_thread do
+		loop do
+			sync :one
+			sample :drum_bass_hard
+		end
 	end
-	```
-
-1. Lastly, you need to play the note.
-
-	```ruby
-	live_loop :listen do
-		message = sync "/play_this"
-		note = message[:args][0]
-		play note
+	in_thread do
+		loop do
+			sync :two
+			sample :drum_bass_soft
+		end
 	end
 	```
 
@@ -91,104 +124,131 @@ Sonic Pi is going to receive messages from your Python script. This will tell So
 
 ## Sending notes from Python
 
-To finish your program, you need to send note midi values to Sonic Pi from your Python file.
+To finish your program, you need to send values to Sonic Pi from your Python file.
 
-1. You'll need to use the OSC library for this part. There are two imports to be added to the top of your file, to allow Python to send messages.
+1. You'll need to add the OSC library for this part. There are two imports to be added to the top of your file, to allow Python to send messages.
 
 	```python
-	from gpiozero import DistanceSensor
-	from time import sleep
+	from gpiozero import Button
+	import mpr121
 
 	from pythonosc import osc_message_builder
 	from pythonosc import udp_client
 
-	sensor = DistanceSensor(echo=17, trigger=4)
+	# Use GPIO Interrupt Pin
+	trigger = Button(14)
+
+	# Use mpr121 class for everything else
+	mpr121.TOU_THRESH = 0x30
+	mpr121.REL_THRESH = 0x33
+	mpr121.setup(0x5a)
+
+	# create a place to store the last state (touched  or not touched) of each switch
+	touches = [0,0,0,0,0,0,0,0,0,0,0,0];
 
 	while True:
-		print(sensor.distance)
-		sleep(1)
+			#check to see if the mpr121 has set the interrupt pin
+			if (trigger.is_pressed):
+				print( "Something was touched or released")
+				#read the data to see which switches are currently pressed
+				touchData = mpr121.readData(0x5a)
+
+				print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
+
 	```
 
 1. Now you need to create a `sender` object that can send the message.
 
 	```python
-	from gpiozero import DistanceSensor
-	from time import sleep
+	from gpiozero import Button
+	import mpr121
 
 	from pythonosc import osc_message_builder
 	from pythonosc import udp_client
 
-	sensor = DistanceSensor(echo=17, trigger=4)
 	sender = udp_client.SimpleUDPClient('127.0.0.1', 4559)
 
+	# Use GPIO Interrupt Pin
+	trigger = Button(14)
+
+	# Use mpr121 class for everything else
+	mpr121.TOU_THRESH = 0x30
+	mpr121.REL_THRESH = 0x33
+	mpr121.setup(0x5a)
+
+	# create a place to store the last state (touched  or not touched) of each switch
+	touches = [0,0,0,0,0,0,0,0,0,0,0,0];
+
 	while True:
-		print(sensor.distance)
-		sleep(1)
+			#check to see if the mpr121 has set the interrupt pin
+			if (trigger.is_pressed):
+				print( "Something was touched or released")
+				#read the data to see which switches are currently pressed
+				touchData = mpr121.readData(0x5a)
+
+				print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
+
 	```
 
-1. You need to convert the distance into a midi value. These should be integers (whole numbers), and hover around the value **60**, which is middle C. To do this you need to round the distance to an integer, multiply it by 100 and then add a little bit, so that the note is not too low in pitch.
+1. You need to convert the binary touchData into a series of message for Sonic Pi. For each of the potatos that has just been touched we want to sent the potato number to Sonic Pi
+
+1. You might also want to add a couple of print lines, these help you to see what is going on when the program is running.  And it might be good if the SonicPi stops playing sounds when you have moved your hand away ... so lets only send data to Sonic Pi when the program calculates a new touch, and ignore the trigger when you let go of a potato.
 
 	```python
-	from gpiozero import DistanceSensor
-	from time import sleep
+	from gpiozero import Button
+	import mpr121
 
 	from pythonosc import osc_message_builder
 	from pythonosc import udp_client
 
-	sensor = DistanceSensor(echo=17, trigger=4)
 	sender = udp_client.SimpleUDPClient('127.0.0.1', 4559)
 
-	while True:
-		pitch = round(sensor.distance * 100 + 30)
-		sleep(1)
-	```
+	# Use GPIO Interrupt Pin
+	trigger = Button(14)
 
-1. To finish off, you need to send the pitch over to Sonic Pi, and reduce the sleep time.  You might also want to add a couple of print lines, these help you to see what is going on when the program is running.  And it might be good if the SonicPi stops playing sounds when you have moved your hand away ... so lets only send data to Sonic Pi when the program calculates a pitch within a sensible range (eg between 40 and 125)
+	# Use mpr121 class for everything else
+	mpr121.TOU_THRESH = 0x30
+	mpr121.REL_THRESH = 0x33
+	mpr121.setup(0x5a)
 
-	```python
-	from gpiozero import DistanceSensor
-	from time import sleep
-
-	from pythonosc import osc_message_builder
-	from pythonosc import udp_client
-
-	sensor = DistanceSensor(echo=17, trigger=4)
-	sender = udp_client.SimpleUDPClient('127.0.0.1', 4559)
+	# create a place to store the last state (touched  or not touched) of each switch
+	touches = [0,0,0,0,0,0,0,0,0,0,0,0];
 
 	while True:
-		pitch = round(sensor.distance * 100 + 30)
-		print(pitch)
-		if (pitch>40 and pitch<125):
-			print("sending message to sonic pi")
-			sender.send_message('/play_this', pitch)
-		sleep(0.1)
+	    #check to see if the mpr121 has set the interrupt pin
+	    if (trigger.is_pressed):
+	      print( "Something was touched or released")
+	      #read the data to see which switches are currently pressed
+	      touchData = mpr121.readData(0x5a)
+
+	      print( "Current switch state :" + bin(touchData)[2:].zfill(12))           
+
+	      #send a message to Sonic Pi for each switch currently touched
+	      for i in range(12):
+	         if (touchData & (1<<i)):
+
+	            if (touches[i] == 0):
+
+	               print( 'Pin ' + str(i) + ' was just touched')
+	               sender.send_message('/play_drum', str(i))
+
+	            touches[i] = 1;
+	         else:
+	            if (touches[i] == 1):
+	               print( 'Pin ' + str(i) + ' was just released')
+	            touches[i] = 0;
+	    else:
+	        pass
 	```
 
-1. Save and run your code and see what happens. If all goes well, you've made your very own theremin.
+1. Save and run your code and see what happens. If all goes well, you've made your very own drum kit.
+
 Remember you need to run this in python3 NOT python2.
 
 ## What next?
 
-- A real theremin has a secondary control to change the amplitude (volume) of the tone being played. You could do this with a second Ultrasonic distance sensor.
+- The Sonic Pi only plays sounds when you touch potato one or two.  Can you see why?
+
+- Can you add more code in Sonic Pi so that it plays different sounds for the other potatoes.
 
 - What happens if you change the timing in the Python file? Can you produce a smoother transition of notes?
-
-- Have a play with different synths, as shown in the Sonic Pi help menu. What effect does changing the synth have on your theremin?
-
-- What about adding a backing rhythm (drums) in a loop in Sonic Pi?  Some ideas from <a href="http://sonic-pi.mehackit.org/exercises/en/02-make-a-song/02-drum-beat.html">http://sonic-pi.mehackit.org</a> might be useful eg
-	```ruby
-	use_bpm 100
-	live_loop :drums do
-		sample :drum_heavy_kick
-		sleep 1
-		sample :drum_snare_hard
-		sleep 1
-		sample :drum_heavy_kick
-		sleep 1
-		sample :drum_snare_hard
-		sleep 1
-	end
-	```
-
-- Can you sync the backing loop and playing a note?
-
