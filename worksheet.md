@@ -89,7 +89,7 @@ Sonic Pi is going to receive messages from your Python script. This will tell So
 1. Next you can add another live loop to sync with the messages that will be coming from Python.
 
 	```ruby
-  live_loop :listen do
+	live_loop :listen do
 		message = sync "/play_drum"
 		drum = message[:args][0]
 		cue :one if drum=="1"
@@ -98,7 +98,7 @@ Sonic Pi is going to receive messages from your Python script. This will tell So
 		cue :four if drum=="4"
 		cue :five if drum=="5"
 		cue :six if drum=="6"
-  end
+	end
 	```
 
 1. The message that comes in will be a dictionary, containing the key `:args`. The value of this key will be the number of one of the potatoes you touched.
