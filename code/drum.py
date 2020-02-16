@@ -24,7 +24,7 @@ mpr121.REL_THRESH = 0x33
 mpr121.setup(0x5a)
 
 # create a place to store the last state (touched  or not touched) of each switch
-touches = [0,0,0,0,0,0,0,0,0,0,0,0];
+touches = [0,0,0,0,0,0,0,0,0,0,0,0]
 
 while True:
     #check to see if the mpr121 has set the interrupt pin
@@ -44,10 +44,10 @@ while True:
                print( 'Pin ' + str(i) + ' was just touched')
                sender.send_message('/play_drum', str(i))
 
-            touches[i] = 1;
+            touches[i] = 1
          else:
             if (touches[i] == 1):
                print( 'Pin ' + str(i) + ' was just released')
-            touches[i] = 0;
+            touches[i] = 0
     else:
         pass
