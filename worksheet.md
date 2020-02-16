@@ -67,7 +67,7 @@ while True:
         print( "Something was touched or released")
         #read the data to see which switches are currently pressed
         touchData = mpr121.readData(0x5a)
-    print( "Current switch state :" + bin(touchData)[2:].zfill(12))
+        print( "Current switch state :" + bin(touchData)[2:].zfill(12))
 
 ```
 
@@ -92,14 +92,14 @@ Sonic Pi is going to receive messages from your Python script. This will tell So
 
  ```ruby
  live_loop :listen do
-  message = sync "/play_drum"
-  drum = message[:args][0]
-  cue :one if drum=="1"
-  cue :two if drum=="2"
-  cue :three if drum=="3"
-  cue :four if drum=="4"
-  cue :five if drum=="5"
-  cue :six if drum=="6"
+   message = sync "/play_drum"
+   drum = message[:args][0]
+   cue :one if drum=="1"
+   cue :two if drum=="2"
+   cue :three if drum=="3"
+   cue :four if drum=="4"
+   cue :five if drum=="5"
+   cue :six if drum=="6"
  end
  ```
 
@@ -151,10 +151,10 @@ To finish your program, you need to send values to Sonic Pi from your Python fil
  while True:
   #check to see if the mpr121 has set the interrupt pin
   if (trigger.is_pressed):
-   print( "Something was touched or released")
-   #read the data to see which switches are currently pressed
-   touchData = mpr121.readData(0x5a)
-   print( "Current switch state :" + bin(touchData)[2:].zfill(12))
+    print( "Something was touched or released")
+    #read the data to see which switches are currently pressed
+    touchData = mpr121.readData(0x5a)
+    print( "Current switch state :" + bin(touchData)[2:].zfill(12))
 
  ```
 
@@ -231,8 +231,8 @@ while True:
           if (touches[i] == 1):
             print( 'Pin ' + str(i) + ' was just released')
             touches[i] = 0;
-          else:
-            pass
+  else:
+    pass
 ```
 
 1. Save and run your code and see what happens. If all goes well, you've made your very own drum kit.
